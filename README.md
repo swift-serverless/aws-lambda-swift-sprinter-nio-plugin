@@ -18,6 +18,4 @@ To know more have a look to this [example](https://github.com/swift-sprinter/aws
 
 # Contributions
 
-Contributions are more than welcome! Follow [this guide](/https://github.com/swift-sprinter/aws-lambda-swift-sprinter-nio-plugin/blob/master/CONTRIBUTING.md) to contribute.
-
-
+Contributions are more than welcome! Follow [this guide](https://github.com/swift-sprinter/aws-lambda-swift-sprinter-nio-plugin/blob/master/CONTRIBUTING.md) to contribute.
