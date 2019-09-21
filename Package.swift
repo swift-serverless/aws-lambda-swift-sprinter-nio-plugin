@@ -15,7 +15,7 @@ let package = Package(
     dependencies: [
         // Dependencies declare other packages that this package depends on.
         //.package(path: "../aws-lambda-swift-sprinter-core/"),
-        .package(url: "https://github.com/swift-sprinter/aws-lambda-swift-sprinter-core", from: "1.0.0")
+        .package(url: "https://github.com/swift-sprinter/aws-lambda-swift-sprinter-core", from: "1.0.0-alpha.1"),
         .package(url: "https://github.com/swift-server/async-http-client.git", from: "1.0.0-alpha.3"),
     ],
     targets: [
