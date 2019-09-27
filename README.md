@@ -1,7 +1,7 @@
 # aws-lambda-swift-sprinter-nio-plugin
 
 
-[![Swift 5](https://img.shields.io/badge/Swift-5.0-blue.svg)](https://swift.org/download/) ![](https://img.shields.io/badge/version-1.0.0--alpha.1-red)
+[![Swift 5](https://img.shields.io/badge/Swift-5.0-blue.svg)](https://swift.org/download/) [![Swift 5.1](https://img.shields.io/badge/Swift-5.1-blue.svg)](https://swift.org/download/) ![](https://img.shields.io/badge/version-1.0.0--alpha.2-red)
 
 The project implements an HTTPS client plugin for the [LambdaSwiftSprinter](https://github.com/swift-sprinter/aws-lambda-swift-sprinter-core) framework.
 

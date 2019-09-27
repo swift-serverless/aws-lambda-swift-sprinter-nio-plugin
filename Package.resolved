@@ -6,8 +6,8 @@
         "repositoryURL": "https://github.com/swift-server/async-http-client.git",
         "state": {
           "branch": null,
-          "revision": "1b31c5a4e381f0a7119c9a41d814cf8f3183a9f7",
-          "version": "1.0.0-alpha.3"
+          "revision": "d84a1da59e0fa879cde27e01cdf9f079208cc0cc",
+          "version": "1.0.0-alpha.4"
         }
       },
       {
@@ -15,8 +15,8 @@
         "repositoryURL": "https://github.com/swift-sprinter/aws-lambda-swift-sprinter-core",
         "state": {
           "branch": null,
-          "revision": "eeec63084ff8bd00daf3234f398b0a862c19a90e",
-          "version": "1.0.0-alpha.1"
+          "revision": "5a8b61f9dfe3acc0d9aa38d3cf2f6d8e257575bc",
+          "version": "1.0.0-alpha.2"
         }
       },
       {
