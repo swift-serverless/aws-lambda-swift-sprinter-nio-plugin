@@ -1,11 +1,15 @@
-SWIFT_DOCKER_IMAGE=swift:latest
-SWIFT_PACKAGE=aws-lambda-swift-sprinter-nio-plugin
-MOUNT_ROOT="$(shell pwd)/.."
+SWIFT_VERSION?=5.1.1
 
-swift_test:
+DOCKER_TAG=nio-swift:$(SWIFT_VERSION)
+SWIFT_DOCKER_IMAGE=$(DOCKER_TAG)
+
+docker_build:
+	docker build --tag $(DOCKER_TAG) docker/$(SWIFT_VERSION)/.
+
+swift_test_with_coverage:
 	docker run \
 			--rm \
-			--volume "$(MOUNT_ROOT):/src" \
-			--workdir "/src" \
+			--volume "$(shell pwd)/:/src" \
+			--workdir "/src/" \
 			$(SWIFT_DOCKER_IMAGE) \
-			/bin/bash -c "cd $(SWIFT_PACKAGE); swift test"
+			/bin/bash -c "swift test --enable-code-coverage && ./export-coverage-test.sh"
