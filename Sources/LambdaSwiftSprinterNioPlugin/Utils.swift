@@ -34,17 +34,16 @@ internal extension HTTPHeaders {
 }
 
 internal extension Data {
-    func decode<T: Decodable>() throws -> T {
-        let jsonDecoder = JSONDecoder()
-        guard let input = try? jsonDecoder.decode(T.self, from: self) else {
-            throw SprinterError.invalidJSON
-        }
-        return input
-    }
 
     init<T: Encodable>(from object: T) throws {
         let jsonEncoder = JSONEncoder()
         self = try jsonEncoder.encode(object)
+    }
+    
+    var byteBuffer: ByteBuffer {
+        var buffer = ByteBufferAllocator().buffer(capacity: self.count)
+        buffer.writeBytes(self)
+        return buffer
     }
 }
 

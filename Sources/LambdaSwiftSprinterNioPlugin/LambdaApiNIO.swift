@@ -32,10 +32,21 @@ public var lambdaRuntimeTimeout: TimeAmount = .seconds(3600)
 public var timeout = HTTPClient.Configuration.Timeout(connect: lambdaRuntimeTimeout,
                                                       read: lambdaRuntimeTimeout)
 
-public var httpClient: HTTPClient = {
+public var httpClient: HTTPClientProtocol = {
     let configuration = HTTPClient.Configuration(timeout: timeout)
     return HTTPClient(eventLoopGroupProvider: .createNew, configuration: configuration)
 }()
+
+public protocol HTTPClientProtocol: class {
+    func get(url: String, deadline: NIODeadline?) -> EventLoopFuture<HTTPClient.Response>
+    func post(url: String, body: HTTPClient.Body?, deadline: NIODeadline?)  -> EventLoopFuture<HTTPClient.Response>
+    func execute(request: HTTPClient.Request, deadline: NIODeadline?) -> EventLoopFuture<HTTPClient.Response>
+    func syncShutdown() throws
+}
+
+extension HTTPClient: HTTPClientProtocol {
+    
+}
 
 public class LambdaApiNIO: LambdaAPI {
     let urlBuilder: LambdaRuntimeAPIUrlBuilder
@@ -47,7 +58,8 @@ public class LambdaApiNIO: LambdaAPI {
     public func getNextInvocation() throws -> (event: Data, responseHeaders: [AnyHashable: Any]) {
         let request = try HTTPClient.Request(url: urlBuilder.nextInvocationURL(), method: .GET)
         let result = try httpClient.execute(
-            request: request
+            request: request,
+            deadline: nil
         ).wait()
 
         let httpHeaders = result.headers
@@ -72,7 +84,8 @@ public class LambdaApiNIO: LambdaAPI {
         )
         request.body = .data(httpBody)
         _ = try httpClient.execute(
-            request: request
+            request: request,
+            deadline: nil
         ).wait()
     }
 
@@ -87,7 +100,8 @@ public class LambdaApiNIO: LambdaAPI {
         request.body = .data(httpBody)
 
         _ = try httpClient.execute(
-            request: request
+            request: request,
+            deadline: nil
         ).wait()
     }
 
@@ -102,7 +116,8 @@ public class LambdaApiNIO: LambdaAPI {
         request.body = .data(httpBody)
 
         _ = try httpClient.execute(
-            request: request
+            request: request,
+            deadline: nil
         ).wait()
     }
 }
