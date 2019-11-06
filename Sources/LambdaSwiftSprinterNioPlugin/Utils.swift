@@ -13,15 +13,9 @@
 //    limitations under the License.
 
 import Foundation
-import LambdaSwiftSprinter
 import NIO
 import NIOHTTP1
-
-internal extension Array where Element == UInt8 {
-    var data: Data {
-        return Data(self)
-    }
-}
+import NIOFoundationCompat
 
 internal extension HTTPHeaders {
     var dictionary: [String: String] {
@@ -39,7 +33,7 @@ internal extension Data {
         let jsonEncoder = JSONEncoder()
         self = try jsonEncoder.encode(object)
     }
-    
+
     var byteBuffer: ByteBuffer {
         var buffer = ByteBufferAllocator().buffer(capacity: self.count)
         buffer.writeBytes(self)

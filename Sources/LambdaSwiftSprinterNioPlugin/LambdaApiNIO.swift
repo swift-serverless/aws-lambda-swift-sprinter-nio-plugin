@@ -20,6 +20,7 @@ import Foundation
 import LambdaSwiftSprinter
 import NIO
 import NIOHTTP1
+import NIOFoundationCompat
 
 public typealias SprinterNIO = Sprinter<LambdaApiNIO>
 
@@ -48,9 +49,16 @@ extension HTTPClient: HTTPClientProtocol {
     
 }
 
+///  The `LambdaApiNIO` class implements the LambdaAPI protocol using NIO.
+///    
 public class LambdaApiNIO: LambdaAPI {
+    
     let urlBuilder: LambdaRuntimeAPIUrlBuilder
 
+    /// Construct a `LambdaApiNIO` class.
+    ///
+    /// - parameters
+    ///     - awsLambdaRuntimeAPI: AWS_LAMBDA_RUNTIME_API
     public required init(awsLambdaRuntimeAPI: String) throws {
         self.urlBuilder = try LambdaRuntimeAPIUrlBuilder(awsLambdaRuntimeAPI: awsLambdaRuntimeAPI)
     }
@@ -69,8 +77,9 @@ public class LambdaApiNIO: LambdaAPI {
         }
 
         if let body = result.body,
-            let buffer = body.getBytes(at: 0, length: body.readableBytes) {
-            let data = buffer.data
+            let data = body.getData(at: 0,
+                                    length: body.readableBytes,
+                                    byteTransferStrategy: .noCopy) {
             return (event: data, responseHeaders: httpHeaders.dictionary)
         } else {
             throw SprinterNIOError.invalidBuffer
