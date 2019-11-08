@@ -39,6 +39,7 @@ public var httpClient: HTTPClientProtocol = {
 }()
 
 public protocol HTTPClientProtocol: class {
+    var eventLoopGroup: EventLoopGroup { get }
     func get(url: String, deadline: NIODeadline?) -> EventLoopFuture<HTTPClient.Response>
     func post(url: String, body: HTTPClient.Body?, deadline: NIODeadline?)  -> EventLoopFuture<HTTPClient.Response>
     func execute(request: HTTPClient.Request, deadline: NIODeadline?) -> EventLoopFuture<HTTPClient.Response>
@@ -54,6 +55,8 @@ extension HTTPClient: HTTPClientProtocol {
 public class LambdaApiNIO: LambdaAPI {
     
     let urlBuilder: LambdaRuntimeAPIUrlBuilder
+    
+    private let _nextInvocationRequest: HTTPClient.Request
 
     /// Construct a `LambdaApiNIO` class.
     ///
@@ -61,12 +64,19 @@ public class LambdaApiNIO: LambdaAPI {
     ///     - awsLambdaRuntimeAPI: AWS_LAMBDA_RUNTIME_API
     public required init(awsLambdaRuntimeAPI: String) throws {
         self.urlBuilder = try LambdaRuntimeAPIUrlBuilder(awsLambdaRuntimeAPI: awsLambdaRuntimeAPI)
+        self._nextInvocationRequest = try HTTPClient.Request(url: urlBuilder.nextInvocationURL(), method: .GET)
     }
 
+    /// Call the next invocation API to get the next event. The response body contains the event data. Response headers contain the `RequestID` and other information.
+    ///
+    /// - returns:
+    ///     - `(event: Data, responseHeaders: [AnyHashable: Any])` the event to process and the responseHeaders
+    /// - throws:
+    ///     - `invalidBuffer` if the body is empty or the buffer doesn't contain data.
+    ///     - `invalidResponse(HTTPResponseStatus)` if the HTTP response is not valid.
     public func getNextInvocation() throws -> (event: Data, responseHeaders: [AnyHashable: Any]) {
-        let request = try HTTPClient.Request(url: urlBuilder.nextInvocationURL(), method: .GET)
         let result = try httpClient.execute(
-            request: request,
+            request: _nextInvocationRequest,
             deadline: nil
         ).wait()
 
@@ -86,6 +96,13 @@ public class LambdaApiNIO: LambdaAPI {
         }
     }
 
+    /// Sends an invocation response to Lambda.
+    ///
+    /// - parameters:
+    ///     - requestId: Request ID
+    ///     - httpBody: data body.
+    /// - throws:
+    ///     - HttpClient errors
     public func postInvocationResponse(for requestId: String, httpBody: Data) throws {
         var request = try HTTPClient.Request(
             url: urlBuilder.invocationResponseURL(requestId: requestId),
@@ -98,6 +115,13 @@ public class LambdaApiNIO: LambdaAPI {
         ).wait()
     }
 
+    /// Sends an invocation error to Lambda.
+    ///
+    /// - parameters:
+    ///     - requestId: Request ID
+    ///     - error: error
+    /// - throws:
+    ///     - HttpClient errors
     public func postInvocationError(for requestId: String, error: Error) throws {
         let errorMessage = String(describing: error)
         let invocationError = InvocationError(errorMessage: errorMessage,
@@ -114,6 +138,12 @@ public class LambdaApiNIO: LambdaAPI {
         ).wait()
     }
 
+    /// Sends an initialization error to Lambda.
+    ///
+    /// - parameters:
+    ///     - error: error
+    /// - throws:
+    ///     - HttpClient errors
     public func postInitializationError(error: Error) throws {
         let errorMessage = String(describing: error)
         let invocationError = InvocationError(errorMessage: errorMessage,

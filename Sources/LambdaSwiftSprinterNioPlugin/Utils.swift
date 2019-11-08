@@ -16,6 +16,7 @@ import Foundation
 import NIO
 import NIOHTTP1
 import NIOFoundationCompat
+import LambdaSwiftSprinter
 
 internal extension HTTPHeaders {
     var dictionary: [String: String] {
@@ -32,6 +33,24 @@ internal extension Data {
     init<T: Encodable>(from object: T) throws {
         let jsonEncoder = JSONEncoder()
         self = try jsonEncoder.encode(object)
+    }
+    
+    func decode<T: Decodable>() throws -> T {
+        let jsonDecoder = JSONDecoder()
+        let input = try jsonDecoder.decode(T.self, from: self)
+        return input
+    }
+
+    func jsonObject() throws -> [String: Any] {
+        let jsonObject = try JSONSerialization.jsonObject(with: self)
+        guard let payload = jsonObject as? [String: Any] else {
+            throw SprinterError.invalidJSON
+        }
+        return payload
+    }
+
+    init(jsonObject: [String: Any]) throws {
+        self = try JSONSerialization.data(withJSONObject: jsonObject)
     }
 
     var byteBuffer: ByteBuffer {
