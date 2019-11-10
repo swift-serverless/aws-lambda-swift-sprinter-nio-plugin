@@ -18,11 +18,229 @@ import NIOHTTP1
 import NIOFoundationCompat
 import LambdaSwiftSprinter
 
-public typealias AsyncDictionaryNIOLambda = ([String: Any], Context, @escaping (DictionaryResult) -> Void) -> Void
+/**
+ `SyncCodableNIOLambda<Event: Decodable, Response: Encodable>` lambda handler typealias.
+ 
+ - Usage example:
+ 
+ ```
+ import AsyncHTTPClient
+ import Foundation
+ #if canImport(FoundationNetworking)
+     import FoundationNetworking
+ #endif
+ import LambdaSwiftSprinter
+ import LambdaSwiftSprinterNioPlugin
+ import Logging
+ import NIO
+ import NIOFoundationCompat
+ 
+ struct Event: Codable {
+     let url: String
+ }
+
+ struct Response: Codable {
+     let url: String
+     let content: String
+ }
+ 
+ let syncCodableNIOLambda: SyncCodableNIOLambda<Event, Response> = { (event, context) throws -> EventLoopFuture<Response> in
+     
+     let request = try HTTPClient.Request(url: event.url)
+     let future = httpClient.execute(request: request, deadline: nil)
+         .flatMapThrowing { (response) throws -> String in
+                 guard let body = response.body,
+                     let value = body.getString(at: 0, length: body.readableBytes) else {
+                         throw SprinterError.invalidJSON
+             }
+             return value
+         }.map { content -> Response in
+             return Response(url: event.url, content: content)
+         }
+     return future
+ }
+ do {
+     let sprinter = try SprinterNIO()
+     sprinter.register(handler: "getHttps", lambda: syncCodableNIOLambda)
+     
+     try sprinter.run()
+ } catch {
+     //log the error
+ }
+ ```
+*/
+public typealias SyncCodableNIOLambda<Event: Decodable, Response: Encodable> = (Event, Context) throws -> EventLoopFuture<Response>
+
+/**
+ `SyncDictionaryNIOLambda` lambda handler typealias.
+
+ - Usage example:
+ 
+ ```
+ import AsyncHTTPClient
+ import Foundation
+ #if canImport(FoundationNetworking)
+     import FoundationNetworking
+ #endif
+ import LambdaSwiftSprinter
+ import LambdaSwiftSprinterNioPlugin
+ import Logging
+ import NIO
+ import NIOFoundationCompat
+ 
+ enum MyError: Error {
+     case invalidParameters
+ }
+ 
+ let syncDictionaryNIOLambda: SyncDictionaryNIOLambda = { (event, context) throws -> EventLoopFuture<[String: Any]> in
+
+     guard let url = event["url"] as? String else {
+         throw MyError.invalidParameters
+     }
+
+     let request = try HTTPClient.Request(url: url)
+     let future = httpClient.execute(request: request, deadline: nil)
+         .flatMapThrowing { (response) throws -> String in
+             guard let body = response.body,
+                 let value = body.getString(at: 0, length: body.readableBytes) else {
+                     throw SprinterError.invalidJSON
+             }
+             return value
+         }.map { content -> [String: Any] in
+             return ["url": url,
+                     "content": content]
+         }
+     return future
+ }
+ do {
+     let sprinter = try SprinterNIO()
+     sprinter.register(handler: "getHttps", lambda: syncDictionaryNIOLambda)
+     
+     try sprinter.run()
+ } catch {
+     //log the error
+ }
+ ```
+*/
+public typealias SyncDictionaryNIOLambda = ([String: Any], Context) throws -> EventLoopFuture<[String: Any]>
+
+
+/**
+ `AsyncCodableNIOLambda<Event: Decodable, Response: Encodable>` lambda handler typealias.
+ 
+ - Parameter
+
+ - Usage example:
+ 
+ ```
+ import AsyncHTTPClient
+ import Foundation
+ #if canImport(FoundationNetworking)
+     import FoundationNetworking
+ #endif
+ import LambdaSwiftSprinter
+ import LambdaSwiftSprinterNioPlugin
+ import Logging
+ import NIO
+ import NIOFoundationCompat
+ 
+ struct Event: Codable {
+     let url: String
+ }
+
+ struct Response: Codable {
+     let url: String
+     let content: String
+ }
+ 
+ let asyncCodableNIOLambda: AsyncCodableNIOLambda<Event, Response> = { (event, context, completion) -> Void in
+     do {
+         let request = try HTTPClient.Request(url: event.url)
+         let reponse: Response = try httpClient.execute(request: request, deadline: nil)
+             .flatMapThrowing { (response) throws -> String in
+                 guard let body = response.body,
+                     let value = body.getString(at: 0, length: body.readableBytes) else {
+                         throw SprinterError.invalidJSON
+                 }
+                 return value
+         }.map { content -> Response in
+             return Response(url: event.url, content: content)
+         }
+         .wait()
+         completion(.success(reponse))
+     } catch {
+         completion(.failure(error))
+     }
+ }
+ do {
+     let sprinter = try SprinterNIO()
+     sprinter.register(handler: "getHttps", lambda: asyncCodableNIOLambda)
+     
+     try sprinter.run()
+ } catch {
+     //log the error
+ }
+ ```
+*/
 public typealias AsyncCodableNIOLambda<Event: Decodable, Response: Encodable> = (Event, Context, @escaping (Result<Response, Error>) -> Void) -> Void
 
-public typealias SyncDictionaryNIOLambda = ([String: Any], Context) throws -> [String: Any]
-public typealias SyncCodableNIOLambda<Event: Decodable, Response: Encodable> = (Event, Context) -> EventLoopFuture<Response>
+
+/**
+ `AsyncDictionaryNIOLambda` lambda handler typealias.
+
+ - Usage example:
+ 
+ ```
+ import AsyncHTTPClient
+ import Foundation
+ #if canImport(FoundationNetworking)
+     import FoundationNetworking
+ #endif
+ import LambdaSwiftSprinter
+ import LambdaSwiftSprinterNioPlugin
+ import Logging
+ import NIO
+ import NIOFoundationCompat
+ 
+ enum MyError: Error {
+     case invalidParameters
+ }
+ 
+ let asynchDictionayNIOLambda: AsyncDictionaryNIOLambda = { (event, context, completion) -> Void in
+     guard let url = event["url"] as? String else {
+         completion(.failure(MyError.invalidParameters))
+         return
+     }
+     do {
+         let request = try HTTPClient.Request(url: url)
+         let dictionary: [String: Any] = try httpClient.execute(request: request, deadline: nil)
+             .flatMapThrowing { (response) throws -> String in
+                 guard let body = response.body,
+                     let value = body.getString(at: 0, length: body.readableBytes) else {
+                         throw SprinterError.invalidJSON
+                 }
+                 return value
+         }.map { content -> [String: Any] in
+             return ["url": url,
+                     "content": content]
+         }
+         .wait()
+         completion(.success(dictionary))
+     } catch {
+         completion(.failure(error))
+     }
+ }
+ do {
+     let sprinter = try SprinterNIO()
+     sprinter.register(handler: "getHttps", lambda: asynchDictionayNIOLambda)
+     
+     try sprinter.run()
+ } catch {
+     //log the error
+ }
+ ```
+*/
+public typealias AsyncDictionaryNIOLambda = ([String: Any], Context, @escaping (DictionaryResult) -> Void) -> Void
 
 public protocol SyncNIOLambdaHandler: LambdaHandler {
     
@@ -70,7 +288,7 @@ public extension AsyncNIOLambdaHandler {
 
 struct CodableSyncNIOLambdaHandler<Event: Decodable, Response: Encodable>: SyncNIOLambdaHandler {
     
-    let handlerFunction: (Event, Context) -> EventLoopFuture<Response>
+    let handlerFunction: (Event, Context) throws -> EventLoopFuture<Response>
 
     func handler(event: Data, context: Context) -> EventLoopFuture<Data> {
         
@@ -115,16 +333,19 @@ struct CodableAsyncNIOLambdaHandler<Event: Decodable, Response: Encodable>: Asyn
 
 struct DictionarySyncNIOLambdaHandler: SyncNIOLambdaHandler {
     
-    let completionHandler: ([String: Any], Context) throws -> [String: Any]
+    let completionHandler: ([String: Any], Context) throws -> EventLoopFuture<[String: Any]>
     func handler(event: Data, context: Context) -> EventLoopFuture<Data> {
-        
+                
         let eventLoop = httpClient.eventLoopGroup.next()
         let promise = eventLoop.makePromise(of: Data.self)
         do {
             let data = try event.jsonObject()
             let output = try completionHandler(data, context)
-            let responseObj = try Data(jsonObject: output)
-            promise.succeed(responseObj)
+            .flatMapThrowing{ (dictionary) -> Data in
+                return try Data(jsonObject: dictionary)
+            }
+            .wait()
+            promise.succeed(output)
         } catch {
             promise.fail(error)
         }

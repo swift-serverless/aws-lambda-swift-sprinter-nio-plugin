@@ -57,8 +57,11 @@ final class SprinterNIOTests: XCTestCase {
                            "_HANDLER": "Lambda.handler"]
         let sprinter = try? Sprinter<LambdaApiNIO>(environment: environment)
         
-        let completion: SyncDictionaryNIOLambda = { (_, _) -> [String: Any] in
-            ["": ""]
+        let completion: SyncDictionaryNIOLambda = { (_, _) -> EventLoopFuture<[String: Any]> in
+            let eventloop = httpClient.eventLoopGroup.next()
+            let promise = eventloop.makePromise(of: [String: Any].self)
+            promise.succeed(["":""])
+            return promise.futureResult
         }
         sprinter?.register(handler: "handler", lambda: completion)
         

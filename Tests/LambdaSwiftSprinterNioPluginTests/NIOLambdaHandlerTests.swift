@@ -89,8 +89,11 @@ final class NIOLambdaHandlerTests: XCTestCase {
     
     func testDictionarySyncNIOLambdaHandler() {
         // When valid Data and valid completionHandler
-        let lambda = DictionarySyncNIOLambdaHandler { (dictionary, _) -> [String: Any] in
-            dictionary
+        let lambda = DictionarySyncNIOLambdaHandler { (dictionary, _) -> EventLoopFuture<[String: Any]> in
+            let eventloop = httpClient.eventLoopGroup.next()
+            let promise = eventloop.makePromise(of: [String: Any].self)
+            promise.succeed(dictionary)
+            return promise.futureResult
         }
         let result = try? lambda.handler(event: validData,
             context: validContext).wait()
@@ -101,7 +104,7 @@ final class NIOLambdaHandlerTests: XCTestCase {
             context: validContext).wait())
 
         // When valid Data and invalid completionHandler
-        let lambda2 = DictionarySyncNIOLambdaHandler { (_, _) -> [String: Any] in
+        let lambda2 = DictionarySyncNIOLambdaHandler { (_, _) -> EventLoopFuture<[String: Any]> in
             throw ErrorMock.someError
         }
 
