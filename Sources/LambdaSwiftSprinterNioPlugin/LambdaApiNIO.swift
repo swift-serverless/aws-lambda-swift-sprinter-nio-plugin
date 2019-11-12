@@ -22,22 +22,45 @@ import NIO
 import NIOHTTP1
 import NIOFoundationCompat
 
+/**
+`SprinterNIO` implements the AWS Lambda Custom Runtime with `SwiftNIO`
+*/
 public typealias SprinterNIO = Sprinter<LambdaApiNIO>
 
+
+/**
+ SprinterNIOError
+ An error related to the `SprinterNIO`
+ 
+  ### Errors: ###
+ ```
+ case invalidResponse(HTTPResponseStatus)
+ case invalidBuffer
+ ```
+ */
 public enum SprinterNIOError: Error {
+    
+    /// Invalid Reponse with `HTTPResponseStatus`
     case invalidResponse(HTTPResponseStatus)
+    
+    /// Invalid Buffer
     case invalidBuffer
 }
 
+/** The amount of time the lambda waits for the next event.
+ 
+ The `default` timeout for a Lambda is `3600` seconds.
+*/
 public var lambdaRuntimeTimeout: TimeAmount = .seconds(3600)
+
+/// The timeout used to create the instance of the `httpClient`
 public var timeout = HTTPClient.Configuration.Timeout(connect: lambdaRuntimeTimeout,
                                                       read: lambdaRuntimeTimeout)
 
-public var httpClient: HTTPClientProtocol = {
-    let configuration = HTTPClient.Configuration(timeout: timeout)
-    return HTTPClient(eventLoopGroupProvider: .createNew, configuration: configuration)
-}()
-
+/** The HTTPClientProtocol defines a generic httpClient
+ 
+ Required for Unit Testing
+*/
 public protocol HTTPClientProtocol: class {
     var eventLoopGroup: EventLoopGroup { get }
     func get(url: String, deadline: NIODeadline?) -> EventLoopFuture<HTTPClient.Response>
@@ -45,6 +68,16 @@ public protocol HTTPClientProtocol: class {
     func execute(request: HTTPClient.Request, deadline: NIODeadline?) -> EventLoopFuture<HTTPClient.Response>
     func syncShutdown() throws
 }
+
+
+/** The httpClient implementing `HTTPClientProtocol`
+ 
+ The `default` implementation is an `HTTPClient` defined in `AsyncHTTPClient`
+*/
+public var httpClient: HTTPClientProtocol = {
+    let configuration = HTTPClient.Configuration(timeout: timeout)
+    return HTTPClient(eventLoopGroupProvider: .createNew, configuration: configuration)
+}()
 
 extension HTTPClient: HTTPClientProtocol {
     

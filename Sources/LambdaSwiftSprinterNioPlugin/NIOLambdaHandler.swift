@@ -21,8 +21,8 @@ import LambdaSwiftSprinter
 /**
  `SyncCodableNIOLambda<Event: Decodable, Response: Encodable>` lambda handler typealias.
  
- - Usage example:
- 
+ ### Usage Example: ###
+
  ```
  import AsyncHTTPClient
  import Foundation
@@ -74,7 +74,7 @@ public typealias SyncCodableNIOLambda<Event: Decodable, Response: Encodable> = (
 /**
  `SyncDictionaryNIOLambda` lambda handler typealias.
 
- - Usage example:
+ ### Usage Example: ###
  
  ```
  import AsyncHTTPClient
@@ -188,8 +188,7 @@ public typealias AsyncCodableNIOLambda<Event: Decodable, Response: Encodable> = 
 /**
  `AsyncDictionaryNIOLambda` lambda handler typealias.
 
- - Usage example:
- 
+ ### Usage Example: ###
  ```
  import AsyncHTTPClient
  import Foundation
