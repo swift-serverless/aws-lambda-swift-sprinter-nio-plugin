@@ -20,45 +20,96 @@ import Foundation
 import LambdaSwiftSprinter
 import NIO
 import NIOHTTP1
+import NIOFoundationCompat
 
+/**
+`SprinterNIO` implements the AWS Lambda Custom Runtime with `SwiftNIO`
+*/
 public typealias SprinterNIO = Sprinter<LambdaApiNIO>
 
+
+/**
+ SprinterNIOError
+ An error related to the `SprinterNIO`
+ 
+  ### Errors: ###
+ ```
+ case invalidResponse(HTTPResponseStatus)
+ case invalidBuffer
+ ```
+ */
 public enum SprinterNIOError: Error {
+    
+    /// Invalid Reponse with `HTTPResponseStatus`
     case invalidResponse(HTTPResponseStatus)
+    
+    /// Invalid Buffer
     case invalidBuffer
 }
 
+/** The amount of time the lambda waits for the next event.
+ 
+ The `default` timeout for a Lambda is `3600` seconds.
+*/
 public var lambdaRuntimeTimeout: TimeAmount = .seconds(3600)
+
+/// The timeout used to create the instance of the `httpClient`
 public var timeout = HTTPClient.Configuration.Timeout(connect: lambdaRuntimeTimeout,
                                                       read: lambdaRuntimeTimeout)
 
-public var httpClient: HTTPClientProtocol = {
-    let configuration = HTTPClient.Configuration(timeout: timeout)
-    return HTTPClient(eventLoopGroupProvider: .createNew, configuration: configuration)
-}()
-
+/** The HTTPClientProtocol defines a generic httpClient
+ 
+ Required for Unit Testing
+*/
 public protocol HTTPClientProtocol: class {
+    var eventLoopGroup: EventLoopGroup { get }
     func get(url: String, deadline: NIODeadline?) -> EventLoopFuture<HTTPClient.Response>
     func post(url: String, body: HTTPClient.Body?, deadline: NIODeadline?)  -> EventLoopFuture<HTTPClient.Response>
     func execute(request: HTTPClient.Request, deadline: NIODeadline?) -> EventLoopFuture<HTTPClient.Response>
     func syncShutdown() throws
 }
 
+
+/** The httpClient implementing `HTTPClientProtocol`
+ 
+ The `default` implementation is an `HTTPClient` defined in `AsyncHTTPClient`
+*/
+public var httpClient: HTTPClientProtocol = {
+    let configuration = HTTPClient.Configuration(timeout: timeout)
+    return HTTPClient(eventLoopGroupProvider: .createNew, configuration: configuration)
+}()
+
 extension HTTPClient: HTTPClientProtocol {
     
 }
 
+///  The `LambdaApiNIO` class implements the LambdaAPI protocol using NIO.
+///    
 public class LambdaApiNIO: LambdaAPI {
+    
     let urlBuilder: LambdaRuntimeAPIUrlBuilder
+    
+    private let _nextInvocationRequest: HTTPClient.Request
 
+    /// Construct a `LambdaApiNIO` class.
+    ///
+    /// - parameters
+    ///     - awsLambdaRuntimeAPI: AWS_LAMBDA_RUNTIME_API
     public required init(awsLambdaRuntimeAPI: String) throws {
         self.urlBuilder = try LambdaRuntimeAPIUrlBuilder(awsLambdaRuntimeAPI: awsLambdaRuntimeAPI)
+        self._nextInvocationRequest = try HTTPClient.Request(url: urlBuilder.nextInvocationURL(), method: .GET)
     }
 
+    /// Call the next invocation API to get the next event. The response body contains the event data. Response headers contain the `RequestID` and other information.
+    ///
+    /// - returns:
+    ///     - `(event: Data, responseHeaders: [AnyHashable: Any])` the event to process and the responseHeaders
+    /// - throws:
+    ///     - `invalidBuffer` if the body is empty or the buffer doesn't contain data.
+    ///     - `invalidResponse(HTTPResponseStatus)` if the HTTP response is not valid.
     public func getNextInvocation() throws -> (event: Data, responseHeaders: [AnyHashable: Any]) {
-        let request = try HTTPClient.Request(url: urlBuilder.nextInvocationURL(), method: .GET)
         let result = try httpClient.execute(
-            request: request,
+            request: _nextInvocationRequest,
             deadline: nil
         ).wait()
 
@@ -69,14 +120,22 @@ public class LambdaApiNIO: LambdaAPI {
         }
 
         if let body = result.body,
-            let buffer = body.getBytes(at: 0, length: body.readableBytes) {
-            let data = buffer.data
+            let data = body.getData(at: 0,
+                                    length: body.readableBytes,
+                                    byteTransferStrategy: .noCopy) {
             return (event: data, responseHeaders: httpHeaders.dictionary)
         } else {
             throw SprinterNIOError.invalidBuffer
         }
     }
 
+    /// Sends an invocation response to Lambda.
+    ///
+    /// - parameters:
+    ///     - requestId: Request ID
+    ///     - httpBody: data body.
+    /// - throws:
+    ///     - HttpClient errors
     public func postInvocationResponse(for requestId: String, httpBody: Data) throws {
         var request = try HTTPClient.Request(
             url: urlBuilder.invocationResponseURL(requestId: requestId),
@@ -89,6 +148,13 @@ public class LambdaApiNIO: LambdaAPI {
         ).wait()
     }
 
+    /// Sends an invocation error to Lambda.
+    ///
+    /// - parameters:
+    ///     - requestId: Request ID
+    ///     - error: error
+    /// - throws:
+    ///     - HttpClient errors
     public func postInvocationError(for requestId: String, error: Error) throws {
         let errorMessage = String(describing: error)
         let invocationError = InvocationError(errorMessage: errorMessage,
@@ -105,6 +171,12 @@ public class LambdaApiNIO: LambdaAPI {
         ).wait()
     }
 
+    /// Sends an initialization error to Lambda.
+    ///
+    /// - parameters:
+    ///     - error: error
+    /// - throws:
+    ///     - HttpClient errors
     public func postInitializationError(error: Error) throws {
         let errorMessage = String(describing: error)
         let invocationError = InvocationError(errorMessage: errorMessage,

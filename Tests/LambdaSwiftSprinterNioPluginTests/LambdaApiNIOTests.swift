@@ -21,7 +21,6 @@ import XCTest
 
 
 @testable import LambdaSwiftSprinterNioPlugin
-// FIXME: Add Unit test
 
 final class LambdaApiNIOTests: XCTestCase {
     
@@ -157,10 +156,10 @@ final class LambdaApiNIOTests: XCTestCase {
     }
     
     static var allTests = [
+           ("testGetNextInvocation", testGetNextInvocation),
         ("testInit", testInit),
-        ("testGetNextInvocation", testGetNextInvocation),
-        ("testPostInvocationResponse", testPostInvocationResponse),
-        ("testPostInvocationError", testPostInvocationError),
         ("testPostInitializationError", testPostInitializationError),
+        ("testPostInvocationError", testPostInvocationError),
+        ("testPostInvocationResponse", testPostInvocationResponse),
     ]
 }

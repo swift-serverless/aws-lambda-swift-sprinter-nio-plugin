@@ -13,15 +13,10 @@
 //    limitations under the License.
 
 import Foundation
-import LambdaSwiftSprinter
 import NIO
 import NIOHTTP1
-
-internal extension Array where Element == UInt8 {
-    var data: Data {
-        return Data(self)
-    }
-}
+import NIOFoundationCompat
+import LambdaSwiftSprinter
 
 internal extension HTTPHeaders {
     var dictionary: [String: String] {
@@ -40,6 +35,24 @@ internal extension Data {
         self = try jsonEncoder.encode(object)
     }
     
+    func decode<T: Decodable>() throws -> T {
+        let jsonDecoder = JSONDecoder()
+        let input = try jsonDecoder.decode(T.self, from: self)
+        return input
+    }
+
+    func jsonObject() throws -> [String: Any] {
+        let jsonObject = try JSONSerialization.jsonObject(with: self)
+        guard let payload = jsonObject as? [String: Any] else {
+            throw SprinterError.invalidJSON
+        }
+        return payload
+    }
+
+    init(jsonObject: [String: Any]) throws {
+        self = try JSONSerialization.data(withJSONObject: jsonObject)
+    }
+
     var byteBuffer: ByteBuffer {
         var buffer = ByteBufferAllocator().buffer(capacity: self.count)
         buffer.writeBytes(self)
