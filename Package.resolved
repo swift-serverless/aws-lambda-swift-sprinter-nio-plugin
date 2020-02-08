@@ -15,8 +15,8 @@
         "repositoryURL": "https://github.com/swift-sprinter/aws-lambda-swift-sprinter-core",
         "state": {
           "branch": null,
-          "revision": "3afe37ba73f50cf5735c82a9b389d981cefe483d",
-          "version": "1.0.0-alpha3"
+          "revision": "6941e41194bde0e57fb0deb23be620f2b8dd626d",
+          "version": "1.0.0"
         }
       },
       {
