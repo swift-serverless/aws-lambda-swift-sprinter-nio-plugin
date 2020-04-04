@@ -1,2 +1,2 @@
-llvm-cov export -instr-profile=.build/x86_64-unknown-linux/debug/codecov/default.profdata -format=lcov \
-.build/x86_64-unknown-linux/debug/LambdaSwiftSprinterNioPluginPackageTests.xctest > .build/x86_64-unknown-linux/debug/codecov/lcov.info
+llvm-cov export -instr-profile=.build/x86_64-unknown-linux-gnu/debug/codecov/default.profdata -format=lcov \
+.build/x86_64-unknown-linux-gnu/debug/LambdaSwiftSprinterNioPluginPackageTests.xctest > .build/x86_64-unknown-linux-gnu/debug/codecov/lcov.info
